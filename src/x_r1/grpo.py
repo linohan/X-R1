@@ -94,6 +94,10 @@ class GRPOScriptArguments(ScriptArguments):
         default=-1.0,
         metadata={"help": "Maximum (negative) penalty for for repetition penalty reward"},
     )
+    num_iterations: int = field(
+        default=1,
+        metadata={"help": "multi-step new/old policy ratio iteration"},
+    )
 
 
 
