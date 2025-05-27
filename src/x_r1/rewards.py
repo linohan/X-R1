@@ -6,6 +6,7 @@ import os
 from openai import OpenAI
 from latex2sympy2_extended import NormalizationConfig
 from math_verify import LatexExtractionConfig, parse, verify
+from utils.utils import *
 
 # Initialize OpenAI client
 client = OpenAI(
@@ -54,94 +55,126 @@ def evaluate_answer_similarity(answer, solution):
         # If API call fails, fall back to simple text matching
         return 1.0 if normalize_text(answer) == normalize_text(solution) else 0.0
 
+# def accuracy_reward(completions, solution, **kwargs):
+#     """Reward function that checks if the completion is the same as the ground truth."""
+#     contents = [completion[0]["content"] for completion in completions]
+#     rewards = []
+#     for content, sol in zip(contents, solution):
+#         # First try latex parsing
+#         gold_parsed = parse(
+#             sol,
+#             extraction_mode="first_match",
+#             extraction_config=[LatexExtractionConfig()],
+#         )
+#         if len(gold_parsed) != 0:
+#             # print('latex gold parsed')
+#             # We require the answer to be provided in correct latex (no malformed operators)
+#             answer_parsed = parse(
+#                 content,
+#                 extraction_config=[
+#                     LatexExtractionConfig(
+#                         normalization_config=NormalizationConfig(
+#                             nits=False,
+#                             malformed_operators=False,
+#                             basic_latex=True,
+#                             equations=True,
+#                             boxed="all",
+#                             units=True,
+#                         ),
+#                         # Ensures that boxed is tried first
+#                         boxed_match_priority=0,
+#                         try_extract_without_anchor=False,
+#                     )
+#                 ],
+#                 extraction_mode="first_match",
+#             )
+#             # Reward 1 if the content is the same as the ground truth, 0 otherwise
+#             reward = float(verify(answer_parsed, gold_parsed))
+#             # print('\nprompt:', prompt)
+#             print('-'*100)
+#             print('\nanswer_parsed:', answer_parsed, '\ngold_parsed:', gold_parsed, '\nreward:', reward)
+#         else:
+#             # For medical text answers, extract from <answer> tags and use GPT4O-mini for evaluation
+#             answer_content = extract_answer(content)
+#             normalized_content = normalize_text(answer_content)
+#             normalized_solution = normalize_text(sol)
+#             reward = evaluate_answer_similarity(normalized_content, normalized_solution)
+#             print('-'*100)
+#             print('\nanswer_parsed:', normalized_content, '\ngold_parsed:', normalized_solution, '\nreward:', reward)
+#         rewards.append(reward)
+
+#     print('\naccuracy rewards:', rewards)
+
+#     return rewards
+
+
+# def accuracy_answer_reward(completion, answer, **kwargs):
+#     """Reward function that checks if the completion is the same as the ground truth."""
+#     '''
+#     input is completion string, answer is extracted gold answer.
+#     '''
+#     gold_parsed = answer
+#     if len(gold_parsed) != 0:
+#         answer_parsed = parse(
+#             completion,
+#             extraction_config=[
+#                 LatexExtractionConfig(
+#                     normalization_config=NormalizationConfig(
+#                         nits=False,
+#                         malformed_operators=False,
+#                         basic_latex=True,
+#                         equations=True,
+#                         boxed="all",
+#                         units=True,
+#                     ),
+#                     # Ensures that boxed is tried first
+#                     boxed_match_priority=0,
+#                     try_extract_without_anchor=False,
+#                 )
+#             ],
+#             extraction_mode="first_match",
+#         )
+#         reward = float(verify(answer_parsed, gold_parsed))
+#         print('-'*100)
+#         print('\nanswer_parsed:', answer_parsed, '\ngold_parsed:', gold_parsed, '\nreward:', reward)
+#     return reward
+
+
 def accuracy_reward(completions, solution, **kwargs):
     """Reward function that checks if the completion is the same as the ground truth."""
     contents = [completion[0]["content"] for completion in completions]
     rewards = []
     for content, sol in zip(contents, solution):
-        # First try latex parsing
-        gold_parsed = parse(
-            sol,
-            extraction_mode="first_match",
-            extraction_config=[LatexExtractionConfig()],
-        )
+        gold_parsed = eval(sol) if isinstance(sol, str) else sol
+        answer_parsed = {}
+        reward = 0.0
         if len(gold_parsed) != 0:
-            # print('latex gold parsed')
-            # We require the answer to be provided in correct latex (no malformed operators)
-            answer_parsed = parse(
-                content,
-                extraction_config=[
-                    LatexExtractionConfig(
-                        normalization_config=NormalizationConfig(
-                            nits=False,
-                            malformed_operators=False,
-                            basic_latex=True,
-                            equations=True,
-                            boxed="all",
-                            units=True,
-                        ),
-                        # Ensures that boxed is tried first
-                        boxed_match_priority=0,
-                        try_extract_without_anchor=False,
-                    )
-                ],
-                extraction_mode="first_match",
-            )
-            # Reward 1 if the content is the same as the ground truth, 0 otherwise
-            reward = float(verify(answer_parsed, gold_parsed))
-            # print('\nprompt:', prompt)
-            print('-'*100)
-            print('\nanswer_parsed:', answer_parsed, '\ngold_parsed:', gold_parsed, '\nreward:', reward)
+            answer_parsed = parse_answer(content)[1]
+            reward = verify_ans(answer_parsed, gold_parsed)
         else:
-            # For medical text answers, extract from <answer> tags and use GPT4O-mini for evaluation
-            answer_content = extract_answer(content)
-            normalized_content = normalize_text(answer_content)
-            normalized_solution = normalize_text(sol)
-            reward = evaluate_answer_similarity(normalized_content, normalized_solution)
-            print('-'*100)
-            print('\nanswer_parsed:', normalized_content, '\ngold_parsed:', normalized_solution, '\nreward:', reward)
+            reward = 0.0
+        print('-'*100)
+        print('\nanswer_parsed:', answer_parsed, '\ngold_parsed:', gold_parsed, '\nreward:', reward)
         rewards.append(reward)
 
     print('\naccuracy rewards:', rewards)
-
     return rewards
 
 
-def accuracy_answer_reward(completion, answer, **kwargs):
-    """Reward function that checks if the completion is the same as the ground truth."""
-    '''
-    input is completion string, answer is extracted gold answer.
-    '''
-    gold_parsed = answer
-    if len(gold_parsed) != 0:
-        answer_parsed = parse(
-            completion,
-            extraction_config=[
-                LatexExtractionConfig(
-                    normalization_config=NormalizationConfig(
-                        nits=False,
-                        malformed_operators=False,
-                        basic_latex=True,
-                        equations=True,
-                        boxed="all",
-                        units=True,
-                    ),
-                    # Ensures that boxed is tried first
-                    boxed_match_priority=0,
-                    try_extract_without_anchor=False,
-                )
-            ],
-            extraction_mode="first_match",
-        )
-        reward = float(verify(answer_parsed, gold_parsed))
-        print('-'*100)
-        print('\nanswer_parsed:', answer_parsed, '\ngold_parsed:', gold_parsed, '\nreward:', reward)
-    return reward
+# def format_reward(completions, **kwargs):
+#     """Reward function that checks if the completion has a specific format."""
+#     pattern = r"^<think>.*?</think><answer>.*?</answer>$"
+#     completion_contents = [completion[0]["content"] for completion in completions]
+#     matches = [re.match(pattern, content) for content in completion_contents]
 
+#     rewards = [1.0 if match else 0.0 for match in matches]
+#     print('-'*100)
+#     print('\nformat rewards:', rewards)
+#     return rewards
 
 def format_reward(completions, **kwargs):
     """Reward function that checks if the completion has a specific format."""
-    pattern = r"^<think>.*?</think><answer>.*?</answer>$"
+    pattern = r"[\s\S]*?</think>[\s\S]*"
     completion_contents = [completion[0]["content"] for completion in completions]
     matches = [re.match(pattern, content) for content in completion_contents]
 
@@ -168,7 +201,80 @@ def reasoning_steps_reward(completions, **kwargs):
     return [min(1.0, count / 3) for count in matches]
 
 
-def len_reward(completions: list[Dict[str, str]], solutions: list[str], **kwargs) -> float:
+# def len_reward(completions: list[Dict[str, str]], solutions: list[str], **kwargs) -> float:
+#     """Compute length-based rewards to discourage overthinking and promote token efficiency.
+
+#     Taken from from the Kimi 1.5 tech report: https://arxiv.org/abs/2501.12599
+
+#     Args:
+#         completions: List of model completions
+#         solutions: List of ground truth solutions
+
+#     Returns:
+#         List of rewards where:
+#         - For correct answers: reward = 0.5 - (len - min_len)/(max_len - min_len)
+#         - For incorrect answers: reward = min(0, 0.5 - (len - min_len)/(max_len - min_len))
+#     """
+#     contents = [completion[0]["content"] for completion in completions]
+
+#     # First check correctness of answers
+#     correctness = []
+#     for content, sol in zip(contents, solutions):
+#         gold_parsed = parse(
+#             sol,
+#             extraction_mode="first_match",
+#             extraction_config=[LatexExtractionConfig()],
+#         )
+#         if len(gold_parsed) == 0:
+#             # Skip unparseable examples
+#             correctness.append(True)  # Treat as correct to avoid penalizing
+#             print("Failed to parse gold solution: ", sol)
+#             continue
+
+#         answer_parsed = parse(
+#             content,
+#             extraction_config=[
+#                 LatexExtractionConfig(
+#                     normalization_config=NormalizationConfig(
+#                         nits=False,
+#                         malformed_operators=False,
+#                         basic_latex=True,
+#                         equations=True,
+#                         boxed=True,
+#                         units=True,
+#                     ),
+#                     boxed_match_priority=0,
+#                     try_extract_without_anchor=False,
+#                 )
+#             ],
+#             extraction_mode="first_match",
+#         )
+#         correctness.append(verify(answer_parsed, gold_parsed))
+
+#     # Calculate lengths
+#     lengths = [len(content) for content in contents]
+#     min_len = min(lengths)
+#     max_len = max(lengths)
+
+#     # If all responses have the same length, return zero rewards
+#     if max_len == min_len:
+#         return [0.0] * len(completions)
+
+#     rewards = []
+#     for length, is_correct in zip(lengths, correctness):
+#         lambda_val = 0.5 - (length - min_len) / (max_len - min_len)
+
+#         if is_correct:
+#             reward = lambda_val
+#         else:
+#             reward = min(0, lambda_val)
+
+#         rewards.append(float(reward))
+
+#     return rewards
+
+
+def len_reward(completions: list[Dict[str, str]], solution: list[str], **kwargs) -> float:
     """Compute length-based rewards to discourage overthinking and promote token efficiency.
 
     Taken from from the Kimi 1.5 tech report: https://arxiv.org/abs/2501.12599
@@ -186,45 +292,33 @@ def len_reward(completions: list[Dict[str, str]], solutions: list[str], **kwargs
 
     # First check correctness of answers
     correctness = []
-    for content, sol in zip(contents, solutions):
-        gold_parsed = parse(
-            sol,
-            extraction_mode="first_match",
-            extraction_config=[LatexExtractionConfig()],
-        )
+    reason_list = []
+    for content, sol in zip(contents, solution):
+        gold_parsed = eval(sol) if isinstance(sol, str) else sol
         if len(gold_parsed) == 0:
             # Skip unparseable examples
             correctness.append(True)  # Treat as correct to avoid penalizing
             print("Failed to parse gold solution: ", sol)
             continue
 
-        answer_parsed = parse(
-            content,
-            extraction_config=[
-                LatexExtractionConfig(
-                    normalization_config=NormalizationConfig(
-                        nits=False,
-                        malformed_operators=False,
-                        basic_latex=True,
-                        equations=True,
-                        boxed=True,
-                        units=True,
-                    ),
-                    boxed_match_priority=0,
-                    try_extract_without_anchor=False,
-                )
-            ],
-            extraction_mode="first_match",
-        )
-        correctness.append(verify(answer_parsed, gold_parsed))
+        reason_parsed, answer_parsed = parse_answer(content)
+        reason_list.append(reason_parsed)
+        if verify_ans(answer_parsed, gold_parsed)>0:
+            correctness.append(True)
+        else:
+            correctness.append(False)
 
     # Calculate lengths
-    lengths = [len(content) for content in contents]
+    lengths = [len(reason) for reason in reason_list]
     min_len = min(lengths)
     max_len = max(lengths)
 
     # If all responses have the same length, return zero rewards
     if max_len == min_len:
+        print("--*"*50)
+        print("All responses have the same length")
+        print(f"lengths: {lengths}")
+        print("--*"*50)
         return [0.0] * len(completions)
 
     rewards = []
@@ -235,8 +329,10 @@ def len_reward(completions: list[Dict[str, str]], solutions: list[str], **kwargs
             reward = lambda_val
         else:
             reward = min(0, lambda_val)
-
+        print('-'*100)
+        print('\nis_correct:', is_correct, '\nmax_len:', max_len, '\nmin_len:', min_len, '\nreward:', reward)
         rewards.append(float(reward))
+    print('\nlength rewards:', rewards)
 
     return rewards
 

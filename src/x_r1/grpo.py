@@ -94,18 +94,21 @@ class GRPOScriptArguments(ScriptArguments):
         default=-1.0,
         metadata={"help": "Maximum (negative) penalty for for repetition penalty reward"},
     )
-    num_iterations: int = field(
-        default=1,
-        metadata={"help": "multi-step new/old policy ratio iteration"},
-    )
 
 
+
+# SYSTEM_PROMPT = (
+#     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
+#     "first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning "
+#     "process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., "
+#     "<think> reasoning process here </think><answer> answer here </answer>"
+# )
 
 SYSTEM_PROMPT = (
     "A conversation between User and Assistant. The user asks a question, and the Assistant solves it. The assistant "
     "first thinks about the reasoning process in the mind and then provides the user with the answer. The reasoning "
-    "process and answer are enclosed within <think> </think> and <answer> </answer> tags, respectively, i.e., "
-    "<think> reasoning process here </think><answer> answer here </answer>"
+    "process are enclosed within <think> </think>, the answer follows immediately after the </think> tag, i.e., "
+    "<think> reasoning process here </think> answer here"
 )
 
 

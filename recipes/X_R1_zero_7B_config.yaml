@@ -3,12 +3,12 @@
 # running time ~32h
 
 # Model arguments
-model_name_or_path: Qwen/Qwen2.5-7B
+model_name_or_path: /home/work/ljm/model/modelscope_cache/hub/Qwen/Qwen2___5-7B-Instruct
 model_revision: main
 torch_dtype: bfloat16
 
 # Data training arguments
-dataset_name: xiaodongguaAIGC/X-R1-7500 # 750 / 1500 / 7500
+dataset_name: /home/work/ljm/code/X-R1/data/manual_corrected-20250218 # /home/work/ljm/code/X-R1/data/X-R1-750 # xiaodongguaAIGC/X-R1-7500 # 750 / 1500 / 7500
 dataset_configs:
 - train
 num_processes: 7
@@ -17,8 +17,8 @@ num_processes: 7
 use_vllm: true
 output_dir: output/X-R1-7B
 gradient_accumulation_steps: 8
-max_prompt_length: 256
-num_generations: 12
+max_prompt_length: 4000
+num_generations: 14
 max_completion_length: 1024
 
 bf16: true
@@ -39,10 +39,10 @@ max_steps: -1
 num_train_epochs: 3
 overwrite_output_dir: true
 per_device_eval_batch_size: 1
-per_device_train_batch_size: 4
+per_device_train_batch_size: 2
 push_to_hub: False
 report_to:
-- wandb
+- tensorboard
 save_strategy: "epoch"
 seed: 42
 warmup_ratio: 0.1

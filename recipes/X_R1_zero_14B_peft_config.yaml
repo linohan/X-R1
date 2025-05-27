@@ -1,28 +1,31 @@
 # This is X-R1(https://github.com/dhcode-cpp/X-R1) project training config:
-# required >=  4x3090(24G)/4090(24G)
-# running time ~1h
+# required >= 1x3090(24G)
+#
+# running time ~8h
 
 # Model arguments
-model_name_or_path: Qwen/Qwen2.5-0.5B
+model_name_or_path: /home/work/ljm/model/modelscope_cache/hub/Qwen/Qwen2___5-14B-Instruct
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
 
 # Data training arguments
-dataset_name: xiaodongguaAIGC/X-R1-750 #  750 / 1500 / 7500
+dataset_name: /home/work/ljm/code/X-R1/data/manual_corrected-20250218 #  750 / 1500 / 7500
 dataset_configs:
 - train
+num_processes: 7
 
 # GRPO trainer config
 bf16: true
 use_vllm: true
 vllm_device: auto
-vllm_gpu_memory_utilization: 0.7
+vllm_gpu_memory_utilization: 0.5
 do_eval: no
 eval_strategy: "no"
 eval_steps: 10
 gradient_accumulation_steps: 8
 gradient_checkpointing: true
+reward_funcs: ["accuracy", "format"]
 gradient_checkpointing_kwargs:
   use_reentrant: false
 learning_rate: 3.0e-06
@@ -30,21 +33,29 @@ log_level: info
 logging_steps: 1
 logging_strategy: steps
 lr_scheduler_type: cosine
-max_prompt_length: 256
-num_generations: 6
+max_prompt_length: 4000
+num_generations: 7
 max_completion_length: 1024
 max_steps: -1
-num_train_epochs: 2
-output_dir: output/X-R1-0.5B-bs4-numgen12-gas8-gpu3
+num_train_epochs: 3
+output_dir: output/X-R1-14B-peft
 overwrite_output_dir: true
 per_device_eval_batch_size: 1
 per_device_train_batch_size: 2
 push_to_hub: False
 report_to:
-- wandb
+- tensorboard
 save_strategy: "epoch"
 seed: 42
 warmup_ratio: 0.1
 
-loss_type: "dr_grpo" # grpo, bnpo, dr_grpo
-beta: 0 # without KL
+
+# lora config
+# task_type: model_args.lora_task_type
+# lora_in_4bit: True # no support QLoRA
+lora_r: 32
+lora_target_modules: ["q_proj","v_proj", "k_proj", "embed_tokens"]
+lora_alpha: 8
+lora_dropout: 0.0
+bias: "none"
+use_peft: true

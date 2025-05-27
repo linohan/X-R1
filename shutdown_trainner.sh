@@ -1,0 +1,1 @@
+ps -eo pid,user,cmd|grep -P 'r1_ljm'|grep -v grep|awk '{print $1}'|xargs kill -9

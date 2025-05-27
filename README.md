@@ -279,16 +279,3 @@ If you have any suggestions, please contact: dhcode95@gmail.com
 ## Acknowledge
 
 [Open-R1](https://github.com/huggingface/open-r1), [TRL](https://github.com/huggingface/trl)
-
-## Citation
-
-```bib
-@misc{deng2025xr1,
-  author = {hang deng},
-  title = {X-R1},
-  publisher = {GitHub},
-  journal = {GitHub repository},
-  howpublished = {\url{https://github.com/dhcode-cpp/X-R1}}
-  year = {2025},
-}
-```
